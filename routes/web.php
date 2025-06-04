@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +17,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Auth::routes();
+
+Route::middleware(['auth'])->group(function(){
+    Route::view('/admin','dashboard/index')->name('dashboard');
+
+    Route::view('/admin/profile','profile/index')->name('profile');
+    Route::post('/admin/users/updateProfile/{user}', [UserController::class, 'updateProfile'])->name('users.updateProfile');
+});
+
+//Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
