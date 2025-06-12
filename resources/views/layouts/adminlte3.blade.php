@@ -6,7 +6,7 @@
   <title>Sistem Informasi Manajemen Penjualan | Dashboard</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{asset('assets/img/favicon.ico')}}">
+   <!-- <link rel="icon" type="image/x-icon" href="{{asset('assets/img/favicon.ico')}}"> -->
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -50,9 +50,6 @@
       </li>
       <li class="nav-item d-none d-sm-inline-block">
         <a href="{{url('/admin')}}" class="nav-link">Beranda</a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="{{url('/')}}" class="nav-link">Lihat Halaman Depan</a>
       </li>
     </ul>
     <ul class="navbar-nav ml-auto">
@@ -134,7 +131,7 @@
         </a>
         <ul class="nav nav-treeview">
           <li class="nav-item">
-            <a href="{{--route('items.index')--}}" class="nav-link">
+            <a href="{{ route('instances.index') }}" class="nav-link">
               <i class="far fa-circle nav-icon"></i>
               <p>Daftar Outlet</p>
             </a>

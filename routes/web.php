@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\InstanceController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +27,10 @@ Route::middleware(['auth'])->group(function(){
 
     Route::view('/admin/profile','profile/index')->name('profile');
     Route::post('/admin/users/updateProfile/{user}', [UserController::class, 'updateProfile'])->name('users.updateProfile');
+
+    Route::resource('/admin/instances',InstanceController::class);
+    Route::post('/admin/instances/showCreate', [InstanceController::class, 'showCreate'])->name('instances.showCreate');
+    Route::get('/admin/poll-instance-status', [InstanceController::class, 'status'])->name('instances.status');;
 });
 
 //Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

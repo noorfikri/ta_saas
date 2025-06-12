@@ -1,15 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Provisions a single-tenant environment.
+Description: SaaS for Transaction Management System
 
-# Param fields
 Parameters:
   InstanceDBName:
     Type: String
-    Description: Instance DB name.
+    Description: DB Name.
   InstanceDBPassword:
     Type: String
     NoEcho: true
-    Description: Instance DB Password.
+    Description: DB Password.
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH keypair for instance access.
 
 Resources:
   VPC:
@@ -22,82 +24,110 @@ Resources:
         - Key: Name
           Value: !Sub ${InstanceDBName}-VPC
 
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
   PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
       Tags:
         - Key: Name
           Value: !Sub ${InstanceDBName}-Public-Subnet
 
-  # EC2 Instance now has a hardcoded instance type.
-  EC2Instance:
-    Type: AWS::EC2::Instance
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
     Properties:
-      InstanceType: t2.micro # Hardcoded instance type
-      ImageId: ami-0c55b159cbfafe1f0 # Amazon Linux 2 AMI (change per region)
+      VpcId: !Ref VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
       SubnetId: !Ref PublicSubnet
-      SecurityGroupIds: [!Ref WebSecurityGroup]
-      UserData: !Base64
-        # The UserData script now uses a fixed GitHub repository.
-        !Sub |
-          #!/bin/bash
-          yum update -y
-          amazon-linux-extras install -y php7.4
-          yum install -y httpd git
+      RouteTableId: !Ref PublicRouteTable
 
-          curl -sS https://getcomposer.org/installer | php
-          mv composer.phar /usr/local/bin/composer
-
-          # Clones from the fixed repository.
-          git clone https://github.com/noorfikri/kp_asri.git -b main /var/www/html
-
-          cd /var/www/html
-          composer install --no-dev --optimize-autoloader
-          cp .env.example .env
-          php artisan key:generate
-
-          # Use the dynamic DB name and password passed as parameters.
-          sed -i "s/DB_HOST=127.0.0.1/DB_HOST=${DB.Endpoint.Address}/g" .env # This line is not changed as it refers to the DB resource, not a parameter.
-          sed -i "s/DB_DATABASE=laravel/DB_DATABASE=${InstanceDBName}/g" .env
-          sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/g" .env
-          sed -i "s/DB_PASSWORD=/DB_PASSWORD=${InstanceDBPassword}/g" .env
-
-          php artisan migrate --seed --force
-
-          chown -R apache:apache /var/www/html
-          chmod -R 755 /var/www/html/storage # This line is not changed as it refers to a directory.
-
-          systemctl start httpd
-          systemctl enable httpd
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ] # AZ 'a'
       Tags:
         - Key: Name
-          Value: !Sub ${TenantDBName}-WebServer
+          Value: !Sub ${InstanceDBName}-Private-Subnet-A
 
-  # RDS Instance also has a hardcoded instance class.
-  DB:
-    Type: AWS::RDS::DBInstance
-    Properties: # This block is not changed as it refers to the DB resource.
-      DBName: !Ref InstanceDBName
-      Engine: mysql
-      MasterUsername: admin # This line is not changed as it is a literal string.
-      MasterUserPassword: !Ref InstanceDBPassword
-      DBInstanceClass: db.t2.micro # Hardcoded instance class
-      AllocatedStorage: '20'
-      VPCSecurityGroups: [!Ref DBSecurityGroup]
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.11.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs '' ] # AZ 'b'
+      Tags:
+        - Key: Name
+          Value: !Sub ${InstanceDBName}-Private-Subnet-B
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private subnet group for the instance database
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
 
   WebSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Enable HTTP access'
+      GroupDescription: 'Allow HTTP and SSH from public'
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 }
 
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -105,10 +135,53 @@ Resources:
       GroupDescription: 'Allow webserver to connect to the database'
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 3306
-          ToPort: 3306
-          SourceSecurityGroupId: !Ref WebSecurityGroup
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !GetAtt WebSecurityGroup.GroupId }
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: t2.micro
+      ImageId: ami-097ac465925fb4a1c
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref WebSecurityGroup]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          amazon-linux-extras install -y php7.4
+          yum install -y httpd git
+          curl -sS https://getcomposer.org/installer | php
+          mv composer.phar /usr/local/bin/composer
+          git clone https://github.com/noorfikri/kp_asri.git -b main /var/www/html
+          cd /var/www/html
+          composer install --no-dev --optimize-autoloader
+          cp .env.example .env
+          php artisan key:generate
+          sed -i "s/DB_HOST=127.0.0.1/DB_HOST=${DB.Endpoint.Address}/g" .env
+          sed -i "s/DB_DATABASE=laravel/DB_DATABASE=${InstanceDBName}/g" .env
+          sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/g" .env
+          sed -i "s/DB_PASSWORD=/DB_PASSWORD=${InstanceDBPassword}/g" .env
+          php artisan migrate --seed --force
+          chown -R apache:apache /var/www/html
+          chmod -R 755 /var/www/html/storage
+          systemctl start httpd
+          systemctl enable httpd
+      Tags:
+        - Key: Name
+          Value: !Sub ${InstanceDBName}-WebServer
+
+  DB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref InstanceDBName
+      Engine: mysql
+      MasterUsername: admin
+      MasterUserPassword: !Ref InstanceDBPassword
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: '20'
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: [!Ref DBSecurityGroup]
 
 Outputs:
   WebAppURL:

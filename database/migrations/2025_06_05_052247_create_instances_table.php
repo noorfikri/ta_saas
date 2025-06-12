@@ -15,13 +15,13 @@ class CreateInstancesTable extends Migration
     {
         Schema::create('instances', function (Blueprint $table) {
             $table->id();
-            $table->string('instance_id')->unique();
+            $table->string('name')->unique();
             $table->string('aws_stack_id')->nullable();
             $table->string('aws_stack_name')->nullable();
-            $table->string('application_url')->nullable();
+            $table->string('app_url')->nullable();
 
-            $table->string('provisioning_status')->default('PENDING');
-            $table->text('provisioning_message')->nullable();
+            $table->string('status')->default('PENDING');
+            $table->text('message')->nullable();
 
             $table->timestamps();
         });
