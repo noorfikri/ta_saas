@@ -53,7 +53,7 @@ class InstanceService
             $instance->aws_stack_name = $stackName;
             $instance->aws_stack_id = $result['StackId'];
             $instance->status = 'creating';
-            $instance->message = "success";
+            $instance->message = "pembuatan sistem sedang berjalan...";
             $instance->save();
 
             return $result['StackId'];

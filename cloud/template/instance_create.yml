@@ -1,17 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: SaaS for Transaction Management System
+Description: Provisions a single-tenant environment using the official, robust Composer installation script.
 
 Parameters:
   InstanceDBName:
     Type: String
-    Description: DB Name.
+    Description: A unique name for the instance's database.
   InstanceDBPassword:
     Type: String
     NoEcho: true
-    Description: DB Password.
+    Description: The password for the instance's database.
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: SSH keypair for instance access.
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
 
 Resources:
   VPC:
@@ -32,7 +32,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnet:
+  PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -41,7 +41,18 @@ Resources:
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       Tags:
         - Key: Name
-          Value: !Sub ${InstanceDBName}-Public-Subnet
+          Value: !Sub ${InstanceDBName}-Public-Subnet-A
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${InstanceDBName}-Public-Subnet-B
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -54,18 +65,32 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  PublicSubnetRouteTableAssociation:
+
+  SubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref PublicSubnetA
       RouteTableId: !Ref PublicRouteTable
+  SubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Multi-AZ subnet group for the instance database
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
 
   PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.10.0/24
-      AvailabilityZone: !Select [ 0, !GetAZs '' ] # AZ 'a'
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
       Tags:
         - Key: Name
           Value: !Sub ${InstanceDBName}-Private-Subnet-A
@@ -75,55 +100,15 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.11.0/24
-      AvailabilityZone: !Select [ 1, !GetAZs '' ] # AZ 'b'
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
       Tags:
         - Key: Name
           Value: !Sub ${InstanceDBName}-Private-Subnet-B
 
-  NatGatewayEIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-  NatGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGatewayEIP.AllocationId
-      SubnetId: !Ref PublicSubnet
-
-  PrivateRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-  PrivateRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway
-
-  PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetA
-      RouteTableId: !Ref PrivateRouteTable
-  PrivateSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetB
-      RouteTableId: !Ref PrivateRouteTable
-
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Private subnet group for the instance database
-      SubnetIds:
-        - !Ref PrivateSubnetA
-        - !Ref PrivateSubnetB
-
   WebSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Allow HTTP and SSH from public'
+      GroupDescription: 'Enable HTTP and SSH access'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
@@ -142,31 +127,91 @@ Resources:
     Properties:
       KeyName: !Ref KeyName
       InstanceType: t2.micro
-      ImageId: ami-097ac465925fb4a1c
-      SubnetId: !Ref PublicSubnet
+      ImageId: ami-097ac465925fb4a1c # Amazon Linux 2 AMI (ap-southeast-1).
+      SubnetId: !Ref PublicSubnetA
       SecurityGroupIds: [!Ref WebSecurityGroup]
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
+          #!/bin/bash -xe
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          echo "Logging Started" >> /var/log/user-data.log
+
+          echo "=====[Explicitly Set Home Variable]=====" >> /var/log/user-data.log
+          export HOME=/root
+          echo "=====[Home Variable Set]=====" >> /var/log/user-data.log
+
+          # Install system packages and all required PHP extensions
+          echo "=====[Updating and installing system packages]=====" >> /var/log/user-data.log
           yum update -y
           amazon-linux-extras install -y php7.4
-          yum install -y httpd git
-          curl -sS https://getcomposer.org/installer | php
+          yum install -y httpd git php-mbstring php-xml php-fpm php-pdo php-mysqlnd php-json php-common php-bcmath php-tokenizer php-ctype php-cli
+          echo "===[Packages installed]===" >> /var/log/user-data.log
+
+          # Install Composer globally using the official, robust method
+          echo "=====[installing Composer]=====" >> /var/log/user-data.log
+          cd /tmp
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(1); }"
+          php composer-setup.php
+          php -r "unlink('composer-setup.php');"
           mv composer.phar /usr/local/bin/composer
+          echo "===[Composer installed]===" >> /var/log/user-data.log
+
+          # Clone Laravel App
+          echo "=====[Cloning Git Project]=====" >> /var/log/user-data.log
           git clone https://github.com/noorfikri/kp_asri.git -b main /var/www/html
+          echo "===[Git Project Cloned]===" >> /var/log/user-data.log
+
+          # Configure Laravel
+          echo "=====[Configuring Laravel]=====" >> /var/log/user-data.log
           cd /var/www/html
-          composer install --no-dev --optimize-autoloader
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+
           cp .env.example .env
           php artisan key:generate
+          echo "===[Laravel Configured]===" >> /var/log/user-data.log
+
+          # Set .env variables
+          echo "=====[Setting .env Variables]=====" >> /var/log/user-data.log
           sed -i "s/DB_HOST=127.0.0.1/DB_HOST=${DB.Endpoint.Address}/g" .env
           sed -i "s/DB_DATABASE=laravel/DB_DATABASE=${InstanceDBName}/g" .env
           sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/g" .env
           sed -i "s/DB_PASSWORD=/DB_PASSWORD=${InstanceDBPassword}/g" .env
-          php artisan migrate --seed --force
+          sed -i "s/APP_DEBUG=false/APP_DEBUG=true/g" .env
+          echo "===[.env Variables Set]===" >> /var/log/user-data.log
+
+          # Set Permissions
+          echo "=====[Setting Permissions]=====" >> /var/log/user-data.log
           chown -R apache:apache /var/www/html
-          chmod -R 755 /var/www/html/storage
-          systemctl start httpd
+          chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+          echo "===[Permissions Set]===" >> /var/log/user-data.log
+
+          # Run Migrations & Clear Config
+          echo "=====[Running Migrations]=====" >> /var/log/user-data.log
+          php artisan optimize:clear
+          php artisan migrate --seed --force
+          echo "===[Migrations Set]===" >> /var/log/user-data.log
+
+          # Configure Apache
+          echo "=====[Configuring Apache]=====" >> /var/log/user-data.log
+          cat > /etc/httpd/conf.d/laravel.conf <<EOF
+          <VirtualHost *:80>
+              DocumentRoot /var/www/html/public
+              <Directory /var/www/html/public>
+                  AllowOverride All
+                  Require all granted
+              </Directory>
+          </VirtualHost>
+          EOF
+          echo "===[Apache Configured]===" >> /var/log/user-data.log
+
+          # Enable and Start Services
+          echo "=====[Starting Services]=====" >> /var/log/user-data.log
+          systemctl enable php-fpm
+          systemctl start php-fpm
           systemctl enable httpd
+          systemctl restart httpd
+          echo "===[Services Started]===" >> /var/log/user-data.log
       Tags:
         - Key: Name
           Value: !Sub ${InstanceDBName}-WebServer

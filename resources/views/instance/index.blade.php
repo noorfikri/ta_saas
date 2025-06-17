@@ -50,36 +50,9 @@
 $(document).ready(function() {
     let pollingInterval;
 
-    $('#create-instance-form').on('submit', function(e) {
-        e.preventDefault();
-        const form = $(this);
-        $.ajax({
-            url: form.attr('action'), method: 'POST', data: form.serialize(),
-            beforeSend: () => { $('#modal-submit-button').prop('disabled', true).find('span').show(); $('#modal-errors').hide(); },
-            success: (response) => {
-                if (response.success) {
-                    $('#createInstanceModal').modal('hide');
-                    form[0].reset();
-                    showAlert('Pembuatan sistem untuk sistem "' + response.instance.name + '" sedang berjalan', 'success');
-                    pollStatus(pollingInterval);
-                }
-            },
-            error: (jqXHR) => {
-                const errorsContainer = $('#modal-errors');
-                if (jqXHR.status === 422) {
-                    let errors = Object.values(jqXHR.responseJSON.errors).map(e => `<li>${e[0]}</li>`).join('');
-                    errorsContainer.html(`<ul>${errors}</ul>`).show();
-                } else {
-                    errorsContainer.html('Terjadi sebuah kesalahan saat memproses formulir.').show();
-                }
-            },
-            complete: () => $('#modal-submit-button').prop('disabled', false).find('span').hide()
-        });
-    });
-
     $('#instances-table-body').on('submit', '.delete-form', function(e) {
         e.preventDefault();
-        if (!confirm('This will permanently delete the instance and all its data. Are you sure?')) return;
+        if (!confirm('Sistem akan dihapus beserta data data didalamnya, anda yakin anda mau menghapus sistem ini?')) return;
 
         const form = $(this);
         $.ajax({
@@ -103,8 +76,6 @@ function showCreate(){
         },
         success: function(data){
             $('#createmodal').html(data.msg)
-
-            processCreate();
         }
     });
 }
