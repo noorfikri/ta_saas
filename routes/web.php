@@ -17,7 +17,7 @@ use App\Http\Controllers\InstanceController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/login');
 });
 
 Auth::routes();
@@ -26,7 +26,7 @@ Route::middleware(['auth'])->group(function(){
     Route::view('/admin','dashboard/index')->name('dashboard');
 
     Route::view('/admin/profile','profile/index')->name('profile');
-    Route::post('/admin/users/updateProfile/{user}', [UserController::class, 'updateProfile'])->name('users.updateProfile');
+    Route::post('/admin/users/updateProfile/{user}', [UserController::class, 'update'])->name('users.updateProfile');
 
     Route::resource('/admin/instances',InstanceController::class);
     Route::post('/admin/instances/showCreate', [InstanceController::class, 'showCreate'])->name('instances.showCreate');

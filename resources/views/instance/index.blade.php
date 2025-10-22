@@ -7,7 +7,7 @@
     <div class="card-header">
         <h3 class="card-title">Daftar Outlet</h3>
         <div class="card-tools">
-            <a href="{{ route('instances.create') }}" class="btn btn-primary" data-target="#showcreatemodal" data-toggle='modal' onclick="showCreate()">
+            <a href="{{ route('instances.create') }}" class="btn btn-primary rounded-pill" data-target="#showcreatemodal" data-toggle='modal' onclick="showCreate()">
                 <i class="fas fa-plus-circle"></i> Buat Outlet Baru
             </a>
         </div>
@@ -25,6 +25,7 @@
                 {{ session('success') }}
             </div>
         @endif
+        <div id="alert-container" class="mb-3"></div>
 
         <table class="table table-bordered table-striped">
             <thead>
@@ -47,27 +48,6 @@
 
 @section('javascript')
 <script>
-$(document).ready(function() {
-    let pollingInterval;
-
-    $('#instances-table-body').on('submit', '.delete-form', function(e) {
-        e.preventDefault();
-        if (!confirm('Sistem akan dihapus beserta data data didalamnya, anda yakin anda mau menghapus sistem ini?')) return;
-
-        const form = $(this);
-        $.ajax({
-            url: form.attr('action'), method: 'POST', data: form.serialize(),
-            success: (response) => {
-                showAlert(response.message, 'info');
-                pollStatus(pollingInterval);
-            },
-            error: () => showAlert('Tidak dapat melakukan proses penghapusan.', 'danger')
-        });
-    });
-
-    pollStatus(pollingInterval);
-});
-
 function showCreate(){
     $.ajax({
         type:'POST',
@@ -75,10 +55,116 @@ function showCreate(){
         data:{'_token':'<?php echo csrf_token() ?>',
         },
         success: function(data){
-            $('#createmodal').html(data.msg)
+            $('#createmodal').html(data.msg);
+            // Attach submit handler to the create form when it's loaded
+            $('#create-tenant-form').on('submit', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                const submitBtn = form.find('button[type="submit"]');
+                const spinner = form.find('#modal-spinner');
+
+                // Show spinner and disable submit button
+                spinner.show();
+                submitBtn.prop('disabled', true);
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    success: function(response) {
+                        // Hide modal
+                        $('#showcreatemodal').modal('hide');
+
+                        // Show success message
+                        if (response.message) {
+                            showAlert(response.message, 'success');
+                        } else {
+                            showAlert('Outlet baru sedang dibuat.', 'success');
+                        }
+
+                        // Refresh the instances table
+                        pollStatus();
+                        startPollingIfNeeded();
+                    },
+                    error: function(xhr) {
+                        // Handle validation errors
+                        if (xhr.status === 422) {
+                            const errors = xhr.responseJSON.errors;
+                            let errorHtml = '<ul class="mb-0">';
+                            $.each(errors, function(key, value) {
+                                errorHtml += '<li>' + value[0] + '</li>';
+                            });
+                            errorHtml += '</ul>';
+                            $('#modal-errors').html(errorHtml).show();
+                        } else {
+                            const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Terjadi kesalahan saat membuat outlet.';
+                            $('#modal-errors').html(errorMsg).show();
+                        }
+                    },
+                    complete: function() {
+                        // Hide spinner and enable submit button
+                        spinner.hide();
+                        submitBtn.prop('disabled', false);
+                    }
+                });
+            });
         }
     });
 }
+
+$(document).ready(function() {
+    let pollingInterval = null;
+    let isPolling = false;
+
+    // Initial load
+    pollStatus();
+
+    $('#instances-table-body').on('submit', '.delete-form', function(e) {
+        e.preventDefault();
+        if (!confirm('Sistem akan dihapus beseta data data didalamnya, anda yakin anda mau menghapus sistem ini?')) return;
+
+        const form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            data: form.serialize(),
+            success: (response) => {
+                if (response.message) {
+                    showAlert(response.message, 'info');
+                } else {
+                    showAlert('Penghapusan sistem telah dimulai.', 'info');
+                }
+                // Refresh status immediately after delete
+                pollStatus();
+                // Restart polling if needed
+                startPollingIfNeeded();
+            },
+            error: (xhr) => {
+                const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Tidak dapat melakukan proses penghapusan.';
+                showAlert(errorMsg, 'danger');
+            }
+        });
+    });
+
+    function startPollingIfNeeded() {
+        // Clear any existing interval
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+
+        // Start polling every 15 seconds
+        pollingInterval = setInterval(pollStatus, 15000);
+    }
+
+    function stopPollingIfNeeded() {
+        // Stop polling if no instances are in progress
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+            console.log("Seluruh sistem telah terupdate, memberhentikan pemberbaharuan.");
+        }
+    }
 
     function showAlert(message, type = 'success') {
         const alertHtml = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -98,10 +184,10 @@ function showCreate(){
                 break;
             case 'creating':
             case 'pending':
-                statusBadge = `<span class="badge badge-warning instance-status" data-status="creating"></i> Sedang membuat...</span>`;
+                statusBadge = `<span class="badge badge-warning instance-status" data-status="creating">Sedang membuat...</span>`;
                 break;
             case 'deleting':
-                statusBadge = `<span class="badge badge-secondary instance-status" data-status="deleting"></i> Sedang menghapus...</span>`;
+                statusBadge = `<span class="badge badge-secondary instance-status" data-status="deleting">Sedang menghapus...</span>`;
                 break;
             default:
                 statusBadge = `<span class="badge badge-danger instance-status" data-status="failed">Gagal</span>`;
@@ -124,7 +210,7 @@ function showCreate(){
                     <form action="${deleteUrl}" method="POST" class="delete-form">
                         <input type="hidden" name="_token" value="${csrfToken}">
                         <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn btn-danger btn-sm" ${!isActionable ? 'disabled' : ''}>
+                        <button type="submit" class="btn btn-danger btn-sm rounded-pill" ${!isActionable ? 'disabled' : ''}>
                             <i class="fas fa-trash"></i> Hapus
                         </button>
                     </form>
@@ -133,42 +219,74 @@ function showCreate(){
         `;
     }
 
-    function updateTable(instances, pollingInterval) {
-
+    function updateTable(instances) {
         const tbody = $('#instances-table-body');
-        tbody.empty();
 
         if (instances.length === 0) {
             tbody.html('<tr><td colspan="6" class="text-center">Anda belum membuat outlet apapun.</td></tr>');
-        } else {
-            instances.forEach(instance => {
-                tbody.append(renderRow(instance));
-            });
+            stopPollingIfNeeded();
+            return;
         }
 
+        // Update or create rows efficiently
+        instances.forEach(instance => {
+            const rowId = `#instance-row-${instance.id}`;
+            const rowHtml = renderRow(instance);
+
+            if ($(rowId).length > 0) {
+                // Update existing row
+                $(rowId).replaceWith(rowHtml);
+            } else {
+                // Add new row
+                tbody.append(rowHtml);
+            }
+        });
+
+        // Remove rows for instances that no longer exist
+        const instanceIds = instances.map(i => i.id);
+        tbody.find('tr').each(function() {
+            const rowId = $(this).attr('id');
+            if (rowId) {
+                const id = parseInt(rowId.replace('instance-row-', ''));
+                if (!instanceIds.includes(id)) {
+                    $(this).remove();
+                }
+            }
+        });
+
+        // Check if any instances are in progress
         const inProgress = instances.some(i => ['creating', 'pending', 'deleting'].includes(i.status));
 
-        if (inProgress && !pollingInterval) {
-            console.log("Perubahan sistem terdeteksi, mulai pemberbaharuan.");
-            pollingInterval = setInterval(pollStatus, 15000);
-        } else if (!inProgress && pollingInterval) {
-            console.log("Seluruh sistem telah terupdate, memberhentikan pemberbaharuan.");
-            clearInterval(pollingInterval);
-            pollingInterval = null;
+        if (inProgress) {
+            console.log("Perubahan sistem terdeteksi, memastikan pemberbaharuan berjalan.");
+            startPollingIfNeeded();
+        } else {
+            stopPollingIfNeeded();
         }
     }
 
-    function pollStatus(pollingInterval) {
+    function pollStatus() {
+        // Prevent multiple simultaneous requests
+        if (isPolling) {
+            console.log("Polling sedang berjalan, melewatkan permintaan baru.");
+            return;
+        }
+
+        isPolling = true;
         console.log("Mengambil perubahan sistem untuk tabel");
+
         $.get("{{ route('instances.status') }}")
             .done(data => {
                 console.log('Berhasil mengambil informasi sistem, mengupdate tabel.');
-                updateTable(data.instances,pollingInterval);
+                updateTable(data.instances);
             })
             .fail(err => {
                 console.error("Gagal mengambil informasi sistem:", err);
-                if (pollingInterval) clearInterval(pollingInterval);
+            })
+            .always(() => {
+                isPolling = false;
             });
     }
+});
 </script>
 @endsection

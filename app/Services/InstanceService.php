@@ -39,7 +39,10 @@ class InstanceService
             [
                 'ParameterKey' => 'KeyName',
                 'ParameterValue' => env('AWS_EC2_KEY_PAIR_NAME'),
-            ],
+            ],[
+                'ParameterKey' => 'InstanceName',
+                'ParameterValue' => $instance->name,
+            ]
         ];
 
         try {

@@ -57,7 +57,13 @@ class InstanceController extends Controller
 
         $this->provisioningService->provisionInstance($instance);
 
-        return redirect()->route('instances.index')->with(['success'=>true, 'msg'=>'Aplikasi sedang dibuat.','instance'=>$instance]);
+        $message = 'Aplikasi sedang dibuat.';
+        
+        if ($request->ajax()) {
+            return response()->json(['message' => $message, 'instance' => $instance]);
+        }
+
+        return redirect()->route('instances.index')->with(['success'=>true, 'msg'=>$message, 'instance'=>$instance]);
     }
 
     /**
@@ -100,9 +106,12 @@ class InstanceController extends Controller
      * @param  \App\Models\Instance  $instance
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Instance $instance)
+    public function destroy(Request $request, Instance $instance)
     {
         if (Auth::id() !== $instance->user_id) {
+            if ($request->ajax()) {
+                return response()->json(['message' => 'Anda tidak dapat menghapus sistem yang bukan milik anda.'], 403);
+            }
             return redirect()->route('instances.index')->with('failed', "Anda tidak dapat menghapus sistem yang bukan milik anda.");
         }
 
@@ -116,7 +125,13 @@ class InstanceController extends Controller
            $instance->delete();
         }
 
-        return redirect()->route('instances.index')->with('success', "Penghapusan sistem untuk sistem '{$tenantName}' sedang berjalan.");
+        $message = "Penghapusan sistem untuk sistem '{$tenantName}' sedang berjalan.";
+        
+        if ($request->ajax()) {
+            return response()->json(['message' => $message]);
+        }
+
+        return redirect()->route('instances.index')->with('success', $message);
     }
 
     public function showCreate(Request $request){

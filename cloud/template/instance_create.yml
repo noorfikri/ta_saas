@@ -9,6 +9,9 @@ Parameters:
     Type: String
     NoEcho: true
     Description: The password for the instance's database.
+  InstanceName:
+    Type: String
+    Description: The Name of The Store.
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
@@ -32,7 +35,7 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-  PublicSubnetA:
+  PublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -41,18 +44,7 @@ Resources:
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       Tags:
         - Key: Name
-          Value: !Sub ${InstanceDBName}-Public-Subnet-A
-
-  PublicSubnetB:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.0.2.0/24
-      MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [ 1, !GetAZs '' ]
-      Tags:
-        - Key: Name
-          Value: !Sub ${InstanceDBName}-Public-Subnet-B
+          Value: !Sub ${InstanceDBName}-Public-Subnet
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -69,18 +61,13 @@ Resources:
   SubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PublicSubnetA
-      RouteTableId: !Ref PublicRouteTable
-  SubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PublicSubnetB
+      SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
 
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: Multi-AZ subnet group for the instance database
+      DBSubnetGroupDescription: Subnet group for the instance database
       SubnetIds:
         - !Ref PrivateSubnetA
         - !Ref PrivateSubnetB
@@ -126,9 +113,9 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       KeyName: !Ref KeyName
-      InstanceType: t2.micro
-      ImageId: ami-097ac465925fb4a1c # Amazon Linux 2 AMI (ap-southeast-1).
-      SubnetId: !Ref PublicSubnetA
+      InstanceType: t4g.micro
+      ImageId: ami-0cf0829a0f92050e8 # Amazon Linux 2023 ARM AMI (ap-southeast-1).
+      SubnetId: !Ref PublicSubnet
       SecurityGroupIds: [!Ref WebSecurityGroup]
       UserData:
         Fn::Base64: !Sub |
@@ -142,16 +129,14 @@ Resources:
 
           # Install system packages and all required PHP extensions
           echo "=====[Updating and installing system packages]=====" >> /var/log/user-data.log
-          yum update -y
-          amazon-linux-extras install -y php7.4
-          yum install -y httpd git php-mbstring php-xml php-fpm php-pdo php-mysqlnd php-json php-common php-bcmath php-tokenizer php-ctype php-cli
+          dnf update -y
+          dnf install -y httpd git php8.2 php8.2-mbstring php8.2-xml php8.2-fpm php8.2-pdo php8.2-mysqlnd php8.2-common php8.2-bcmath php8.2-cli
           echo "===[Packages installed]===" >> /var/log/user-data.log
 
           # Install Composer globally using the official, robust method
           echo "=====[installing Composer]=====" >> /var/log/user-data.log
           cd /tmp
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-          php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); exit(1); }"
           php composer-setup.php
           php -r "unlink('composer-setup.php');"
           mv composer.phar /usr/local/bin/composer
@@ -159,7 +144,7 @@ Resources:
 
           # Clone Laravel App
           echo "=====[Cloning Git Project]=====" >> /var/log/user-data.log
-          git clone https://github.com/noorfikri/kp_asri.git -b main /var/www/html
+          git clone https://github.com/noorfikri/kp_asri.git -b saas_deploy_app /var/www/html
           echo "===[Git Project Cloned]===" >> /var/log/user-data.log
 
           # Configure Laravel
@@ -176,6 +161,7 @@ Resources:
           sed -i "s/DB_HOST=127.0.0.1/DB_HOST=${DB.Endpoint.Address}/g" .env
           sed -i "s/DB_DATABASE=laravel/DB_DATABASE=${InstanceDBName}/g" .env
           sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/g" .env
+          sed -i "s/STORE_NAME=TokoKu/STORE_NAME=${InstanceName}/g" .env
           sed -i "s/DB_PASSWORD=/DB_PASSWORD=${InstanceDBPassword}/g" .env
           sed -i "s/APP_DEBUG=false/APP_DEBUG=true/g" .env
           echo "===[.env Variables Set]===" >> /var/log/user-data.log
@@ -190,6 +176,7 @@ Resources:
           echo "=====[Running Migrations]=====" >> /var/log/user-data.log
           php artisan optimize:clear
           php artisan migrate --seed --force
+          php artisan storage:link
           echo "===[Migrations Set]===" >> /var/log/user-data.log
 
           # Configure Apache
@@ -223,9 +210,10 @@ Resources:
       Engine: mysql
       MasterUsername: admin
       MasterUserPassword: !Ref InstanceDBPassword
-      DBInstanceClass: db.t3.micro
+      DBInstanceClass: db.t4g.micro
       AllocatedStorage: '20'
       DBSubnetGroupName: !Ref DBSubnetGroup
+      DeletionProtection: false
       VPCSecurityGroups: [!Ref DBSecurityGroup]
 
 Outputs:
