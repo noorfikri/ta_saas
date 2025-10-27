@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistem Informasi Manajemen Penjualan | Dashboard</title>
+  <title>Sistem Informasi Manajemen Toko </title>
 
     <!-- Favicon -->
-   <!-- <link rel="icon" type="image/x-icon" href="{{asset('assets/img/favicon.ico')}}"> -->
+   <link rel="icon" type="image/x-icon" href="{{asset('assets/img/favicon.ico')}}">
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -55,23 +55,21 @@
     <ul class="navbar-nav ml-auto">
       <li class="nav-item dropdown user-menu">
         <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">
-          <img src="{{asset(Auth::user()->profile_picture)}}" class="user-image img-circle elevation-2" alt="User Image">
           <span class="d-none d-md-inline">{{ Auth::user()->name }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
           <!-- User image -->
-          <li class="user-header bg-primary">
-            <img src="{{asset(Auth::user()->profile_picture)}}" class="img-circle elevation-2" alt="User Image">
+          <li class="user-header bg-light">
 
             <p>
               {{ Auth::user()->name }}
-              <small>Member since {{ Auth::user()->created_at->format('M. Y') }}</small>
+              <small>Terdaftar Sejak {{ Auth::user()->created_at->format('M. Y') }}</small>
             </p>
           </li>
           <!-- Menu Footer-->
           <li class="user-footer">
-            <a href="#" class="btn btn-default btn-flat">Profil</a>
-            <a class="btn btn-default btn-flat float-right" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Keluar</a>
+            <a href="{{ route('profile') }}" class="btn btn-default btn-outline-dark rounded-pill"> <i class="fa-solid fa-user"></i> Profil</a>
+            <a class="btn btn-danger rounded-pill float-right" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
           </li>
         </ul>
       </li>
@@ -83,49 +81,26 @@
   <aside class="main-sidebar elevation-4 sidebar-light-indigo">
     <!-- Brand Logo -->
     <a href="{{url('/')}}" class="brand-link">
-      <span class="brand-text font-weight-light">Administrasi Sistem</span>
+      <span class="brand-text font-weight-light">Administrasi Sistem Toko</span>
     </a>
 
     <!-- Sidebar -->
     <div class="sidebar">
       <!-- Sidebar user panel (optional) -->
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="{{asset(Auth::user()->profile_picture)}}" class="img-circle elevation-2" alt="User Image">
-        </div>
         <div class="info">
-          <a href="#" class="d-block">{{ Auth::user()->name }}</a>
+          <a href="{{ route('profile') }}" class="d-block">{{ Auth::user()->name }}</a>
         </div>
       </div>
     <!-- Sidebar Menu -->
     <nav class="mt-2">
       <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-        <!-- Add icons to the links using the .nav-icon class
-           with font-awesome or any other icon font library -->
-        <li class="nav-header">DASHBOARD</li>
-        <li class="nav-item">
-        <a href="#" class="nav-link">
-          <i class="nav-icon fa-solid fa-house"></i>
-          <p>
-            Dashboard
-            <i class="right fas fa-angle-left"></i>
-          </p>
-        </a>
-        <ul class="nav nav-treeview">
-          <li class="nav-item">
-            <a href="{{url('/admin')}}" class="nav-link">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Dashboard</p>
-            </a>
-          </li>
-        </ul>
-        </li>
-        <li class="nav-header">Outlet</li>
+        <li class="nav-header">Manajemen Tokoku</li>
         <li class="nav-item">
         <a href="#" class="nav-link">
           <i class="nav-icon fa-solid fa-boxes-stacked"></i>
           <p>
-            Outlet
+            Tokoku
             <i class="right fas fa-angle-left"></i>
           </p>
         </a>
@@ -133,7 +108,7 @@
           <li class="nav-item">
             <a href="{{ route('instances.index') }}" class="nav-link">
               <i class="far fa-circle nav-icon"></i>
-              <p>Daftar Outlet</p>
+              <p>Daftar Tokoku</p>
             </a>
           </li>
         </ul>

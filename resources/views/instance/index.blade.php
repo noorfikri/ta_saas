@@ -3,45 +3,95 @@
 @section('title', 'Daftar Outlet')
 
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Daftar Outlet</h3>
-        <div class="card-tools">
-            <a href="{{ route('instances.create') }}" class="btn btn-primary rounded-pill" data-target="#showcreatemodal" data-toggle='modal' onclick="showCreate()">
-                <i class="fas fa-plus-circle"></i> Buat Outlet Baru
-            </a>
+<section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Daftar Sistem Informasi Toko</h1>
         </div>
-        <div class="modal fade" id="showcreatemodal" tabindex="-1" role="basic" aria-hidden="true">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content" id="createmodal">
-                        <img src="{{ asset('assets/img/ajax-modal-loading.gif')}}" alt="" class="loading">
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item active">Daftar Sistem Informasi Toko</li>
+          </ol>
+        </div>
+      </div>
+    </div><!-- /.container-fluid -->
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-tools">
+                            <a href="{{ route('instances.create') }}" class="btn btn-primary rounded-pill" data-target="#showcreatemodal" data-toggle='modal' onclick="showCreate()">
+                                <i class="fas fa-plus-circle"></i> Buat Sistem Toko Baru
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (session('success'))
+                            <div class="alert alert-success"  id="success-alert">
+                                {{ session('success') }}
+                            </div>
+                        @endif
+                        <div id="alert-container" class="mb-3"></div>
+
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nama Toko</th>
+                                    <th>Status</th>
+                                    <th style="width: 40%;">Pesan</th>
+                                    <th>Link URL Aplikasi Web</th>
+                                    <th>Tanggal Pembuatan</th>
+                                    <th>Opsi</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="instances-table-body">
+
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
-    <div class="card-body">
-        @if (session('success'))
-            <div class="alert alert-success"  id="success-alert">
-                {{ session('success') }}
+</section>
+
+<div class="modal fade" id="showcreatemodal" tabindex="-1" role="basic" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" id="createmodal">
+            <img src="{{ asset('assets/img/ajax-modal-loading.gif')}}" alt="" class="loading">
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteInstanceModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="card modal-body card-outline card-danger shadow-lg p-0">
+                <form id="delete-instance-form" method="POST" action="">
+                    @csrf
+                    @method('DELETE')
+                    <div class="modal-header d-flex justify-content-between my-0 py-0 border-0">
+                        <div class="bg-danger py-2 px-3 my-0 rounded-bottom rounded-3">
+                            <h4 class="modal-title" id="deleteModalLabel"> <i class="fa-solid fa-trash"></i> Hapus Outlet</h4>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <p>Apakah Anda yakin ingin menghapus outlet "<span id="instance-name-to-delete"></span>"?</p>
+                        <small>Sistem akan dihapus beserta data data didalamnya.</small>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" class="btn btn-outline-dark rounded-pill" data-dismiss="modal"><i class="fa-solid fa-xmark"></i> Batal</button>
+                        <button type="submit" class="btn btn-danger rounded-pill"><i class="fas fa-trash"></i> Hapus Outlet</button>
+                    </div>
+                </form>
             </div>
-        @endif
-        <div id="alert-container" class="mb-3"></div>
-
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Nama Outlet</th>
-                    <th>Status</th>
-                    <th style="width: 40%;">Pesan</th>
-                    <th>Link URL Aplikasi Web</th>
-                    <th>Tanggal Pembuatan</th>
-                    <th>Opsi</th>
-                </tr>
-            </thead>
-            <tbody id="instances-table-body">
-
-            </tbody>
-        </table>
+        </div>
     </div>
 </div>
 @endsection
@@ -56,14 +106,13 @@ function showCreate(){
         },
         success: function(data){
             $('#createmodal').html(data.msg);
-            // Attach submit handler to the create form when it's loaded
+
             $('#create-tenant-form').on('submit', function(e) {
                 e.preventDefault();
                 const form = $(this);
                 const submitBtn = form.find('button[type="submit"]');
                 const spinner = form.find('#modal-spinner');
 
-                // Show spinner and disable submit button
                 spinner.show();
                 submitBtn.prop('disabled', true);
 
@@ -72,22 +121,18 @@ function showCreate(){
                     method: 'POST',
                     data: form.serialize(),
                     success: function(response) {
-                        // Hide modal
                         $('#showcreatemodal').modal('hide');
 
-                        // Show success message
                         if (response.message) {
                             showAlert(response.message, 'success');
                         } else {
-                            showAlert('Outlet baru sedang dibuat.', 'success');
+                            showAlert('Sistem Informasi Toko baru sedang dibuat.', 'success');
                         }
 
-                        // Refresh the instances table
-                        pollStatus();
+                        pollStatus(true);
                         startPollingIfNeeded();
                     },
                     error: function(xhr) {
-                        // Handle validation errors
                         if (xhr.status === 422) {
                             const errors = xhr.responseJSON.errors;
                             let errorHtml = '<ul class="mb-0">';
@@ -97,12 +142,11 @@ function showCreate(){
                             errorHtml += '</ul>';
                             $('#modal-errors').html(errorHtml).show();
                         } else {
-                            const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Terjadi kesalahan saat membuat outlet.';
+                            const errorMsg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Terjadi kesalahan saat membuat Sistem.';
                             $('#modal-errors').html(errorMsg).show();
                         }
                     },
                     complete: function() {
-                        // Hide spinner and enable submit button
                         spinner.hide();
                         submitBtn.prop('disabled', false);
                     }
@@ -116,12 +160,22 @@ $(document).ready(function() {
     let pollingInterval = null;
     let isPolling = false;
 
-    // Initial load
     pollStatus();
 
-    $('#instances-table-body').on('submit', '.delete-form', function(e) {
+    $('#instances-table-body').on('click', '.delete-btn', function() {
+        const instanceId = $(this).data('id');
+        const instanceName = $(this).data('name');
+        const deleteUrl = "{{ route('instances.destroy', ':id') }}".replace(':id', instanceId);
+
+        $('#instance-name-to-delete').text(instanceName);
+        $('#delete-instance-form').attr('action', deleteUrl);
+
+        $('#deleteInstanceModal').modal('show');
+    });
+
+    $('#delete-instance-form').on('submit', function(e) {
         e.preventDefault();
-        if (!confirm('Sistem akan dihapus beseta data data didalamnya, anda yakin anda mau menghapus sistem ini?')) return;
+        $('#deleteInstanceModal').modal('hide');
 
         const form = $(this);
         $.ajax({
@@ -134,9 +188,9 @@ $(document).ready(function() {
                 } else {
                     showAlert('Penghapusan sistem telah dimulai.', 'info');
                 }
-                // Refresh status immediately after delete
+
                 pollStatus();
-                // Restart polling if needed
+
                 startPollingIfNeeded();
             },
             error: (xhr) => {
@@ -147,18 +201,15 @@ $(document).ready(function() {
     });
 
     function startPollingIfNeeded() {
-        // Clear any existing interval
         if (pollingInterval) {
             clearInterval(pollingInterval);
             pollingInterval = null;
         }
 
-        // Start polling every 15 seconds
         pollingInterval = setInterval(pollStatus, 15000);
     }
 
     function stopPollingIfNeeded() {
-        // Stop polling if no instances are in progress
         if (pollingInterval) {
             clearInterval(pollingInterval);
             pollingInterval = null;
@@ -194,10 +245,8 @@ $(document).ready(function() {
         }
 
         const messageHtml = `<div style="max-width: 300px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;"><small>${instance.message || 'Tidak ada pesan'}</small></div>`;
-        const url = instance.app_url ? `<a href="http://${instance.app_url}" target="_blank">${instance.app_url}</a>` : 'N/A';
+        const url = instance.app_url ? `<a href="http://${instance.app_url}" target="_blank">http://${instance.app_url}</a>` : 'N/A';
         const createdAt = new Date(instance.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
-        let deleteUrl = "{{ route('instances.destroy', ':id') }}".replace(':id', instance.id);
-        const csrfToken = '{{ csrf_token() }}';
 
         return `
             <tr id="instance-row-${instance.id}">
@@ -207,13 +256,12 @@ $(document).ready(function() {
                 <td>${url}</td>
                 <td>${createdAt}</td>
                 <td>
-                    <form action="${deleteUrl}" method="POST" class="delete-form">
-                        <input type="hidden" name="_token" value="${csrfToken}">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn btn-danger btn-sm rounded-pill" ${!isActionable ? 'disabled' : ''}>
-                            <i class="fas fa-trash"></i> Hapus
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-danger btn-sm rounded-pill delete-btn"
+                            data-id="${instance.id}"
+                            data-name="${instance.name}"
+                            ${!isActionable ? 'disabled' : ''}>
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
                 </td>
             </tr>
         `;
@@ -223,26 +271,22 @@ $(document).ready(function() {
         const tbody = $('#instances-table-body');
 
         if (instances.length === 0) {
-            tbody.html('<tr><td colspan="6" class="text-center">Anda belum membuat outlet apapun.</td></tr>');
+            tbody.html('<tr><td colspan="6" class="text-center">Anda belum membuat Sistem Informasi apapun.</td></tr>');
             stopPollingIfNeeded();
             return;
         }
 
-        // Update or create rows efficiently
         instances.forEach(instance => {
             const rowId = `#instance-row-${instance.id}`;
             const rowHtml = renderRow(instance);
 
             if ($(rowId).length > 0) {
-                // Update existing row
                 $(rowId).replaceWith(rowHtml);
             } else {
-                // Add new row
                 tbody.append(rowHtml);
             }
         });
 
-        // Remove rows for instances that no longer exist
         const instanceIds = instances.map(i => i.id);
         tbody.find('tr').each(function() {
             const rowId = $(this).attr('id');
@@ -254,7 +298,6 @@ $(document).ready(function() {
             }
         });
 
-        // Check if any instances are in progress
         const inProgress = instances.some(i => ['creating', 'pending', 'deleting'].includes(i.status));
 
         if (inProgress) {
@@ -265,9 +308,8 @@ $(document).ready(function() {
         }
     }
 
-    function pollStatus() {
-        // Prevent multiple simultaneous requests
-        if (isPolling) {
+    function pollStatus(force = false) {
+        if (isPolling && !force) {
             console.log("Polling sedang berjalan, melewatkan permintaan baru.");
             return;
         }

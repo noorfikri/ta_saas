@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Provisions a single-tenant environment using the official, robust Composer installation script.
+Description: Provisions a single-tenant environment for store owners.
 
 Parameters:
   InstanceDBName:
@@ -9,12 +9,20 @@ Parameters:
     Type: String
     NoEcho: true
     Description: The password for the instance's database.
-  InstanceName:
+  StoreName:
     Type: String
     Description: The Name of The Store.
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+  AdminEmail:
+    Type: String
+    NoEcho: true
+    Description: The email for the admin user.
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    Description: The password for the admin user.
 
 Resources:
   VPC:
@@ -158,12 +166,14 @@ Resources:
 
           # Set .env variables
           echo "=====[Setting .env Variables]=====" >> /var/log/user-data.log
-          sed -i "s/DB_HOST=127.0.0.1/DB_HOST=${DB.Endpoint.Address}/g" .env
-          sed -i "s/DB_DATABASE=laravel/DB_DATABASE=${InstanceDBName}/g" .env
-          sed -i "s/DB_USERNAME=root/DB_USERNAME=admin/g" .env
-          sed -i "s/STORE_NAME=TokoKu/STORE_NAME=${InstanceName}/g" .env
-          sed -i "s/DB_PASSWORD=/DB_PASSWORD=${InstanceDBPassword}/g" .env
-          sed -i "s/APP_DEBUG=false/APP_DEBUG=true/g" .env
+          sed -i "s|DB_HOST=127.0.0.1|DB_HOST=${DB.Endpoint.Address}|g" .env
+          sed -i "s|DB_DATABASE=laravel|DB_DATABASE=${InstanceDBName}|g" .env
+          sed -i "s|DB_USERNAME=root|DB_USERNAME=admin|g" .env
+          # sed -i "s|STORE_NAME=|STORE_NAME=${StoreName}|g" .env
+          sed -i "s|DB_PASSWORD=|DB_PASSWORD=${InstanceDBPassword}|g" .env
+          sed -i "s|APP_DEBUG=false|APP_DEBUG=true|g" .env
+          sed -i "s|ADMIN_EMAIL=|ADMIN_EMAIL=${AdminEmail}|g" .env
+          sed -i "s|ADMIN_PASSWORD=|ADMIN_PASSWORD=${AdminPassword}|g" .env
           echo "===[.env Variables Set]===" >> /var/log/user-data.log
 
           # Set Permissions

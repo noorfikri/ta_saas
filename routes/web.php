@@ -23,10 +23,12 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::middleware(['auth'])->group(function(){
-    Route::view('/admin','dashboard/index')->name('dashboard');
+    Route::get('/admin', function () {
+        return redirect()->route('instances.index');
+    })->name('dashboard');
 
     Route::view('/admin/profile','profile/index')->name('profile');
-    Route::post('/admin/users/updateProfile/{user}', [UserController::class, 'update'])->name('users.updateProfile');
+        Route::put('/admin/profile/{user}', [UserController::class, 'update'])->name('profile.update');
 
     Route::resource('/admin/instances',InstanceController::class);
     Route::post('/admin/instances/showCreate', [InstanceController::class, 'showCreate'])->name('instances.showCreate');

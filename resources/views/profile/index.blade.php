@@ -1,27 +1,6 @@
 @extends('layouts.adminlte3')
 
-@section('javascript')
-<script>
-function editPreviewImage(input) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            $('#edit-preview-image').attr('src', e.target.result);
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-$(document).ready(function(){
-    $("#inputImageEdit").change(function(){
-        editPreviewImage(this);
-    });
-});
-</script>
-@endsection
-
 @section('content')
-
 @if (session('status'))
     <div class="alert alert-success">
         {{ session('status') }}
@@ -32,23 +11,23 @@ $(document).ready(function(){
         {{ session('error') }}
     </div>
 @endif
-
 <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Profil Akun</h1>
+          <h1>Profil</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="#">Beranda</a></li>
-            <li class="breadcrumb-item active">Profil Akun</li>
+            <li class="breadcrumb-item active">Profil Pengguna</li>
           </ol>
         </div>
       </div>
     </div><!-- /.container-fluid -->
-</section>
-<section class="content">
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-3">
@@ -56,30 +35,10 @@ $(document).ready(function(){
           <!-- Profile Image -->
           <div class="card card-primary card-outline">
             <div class="card-body box-profile">
-              <div class="text-center">
-                <img class="profile-user-img img-fluid img-circle" src="{{ asset(Auth::user()->profile_picture) }}" alt="User profile picture">
-              </div>
 
               <h3 class="profile-username text-center">{{ Auth::user()->name }}</h3>
-                <p class="text-muted text-center">{{ Auth::user()->email }}</p>
 
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card -->
-
-          <!-- About Me Box -->
-          <div class="card card-primary">
-            <div class="card-header">
-              <h3 class="card-title">Informasi Pribadi</h3>
-            </div>
-            <!-- /.card-header -->
-            <div class="card-body">
-              <strong><i class="fas fa-book mr-1"></i> Email </strong>
-
-              <p class="text-muted">
-                {{ Auth::user()->email }}
-              </p>
+              <p class="text-muted text-center">{{ Auth::user()->email }}</p>
 
             </div>
             <!-- /.card-body -->
@@ -88,45 +47,66 @@ $(document).ready(function(){
         </div>
         <!-- /.col -->
         <div class="col-md-9">
-          <div class="card">
-            <div class="card-header p-2">
-              <ul class="nav nav-pills">
-                <li class="nav-item"><a class="nav-link active" href="#settings" data-toggle="tab">Ubah Informasi Pengguna</a></li>
-              </ul>
+          <div class="card card-outline card-primary p-0">
+            <div class="card-header d-flex justify-content-between my-0 py-0 border-0">
+              <div class="bg-primary py-2 px-3 my-0 rounded-bottom rounded-3">
+                <h3 class="card-title"><i class="fa-solid fa-pen-to-square"></i> Ubah Informasi Pengguna</h3>
+              </div>
             </div><!-- /.card-header -->
             <div class="card-body">
               <div class="tab-content">
                 <div class="tab-pane active" id="settings">
-                  <form class="form-horizontal" method="POST" action="{{route('users.updateProfile', Auth::user()->id)}}" enctype="multipart/form-data">
+                <form class="form-horizontal" method="POST" action="{{ route('profile.update', Auth::user()->id) }}" enctype="multipart/form-data">
                     @csrf
-                    @method('POST')
+                    @method('PUT')
                     <div class="form-group row">
-                        <img class="profile-user-img img-fluid img-circle" id="edit-preview-image" src="{{ asset(Auth::user()->profile_picture) }}" alt="User profile picture">
-                      </div>
-                    <div class="form-group row">
-                        <label for="inputProfilePicture" class="col-sm-2 col-form-label">Gambar Profil</label>
+                        <label for="inputName" class="col-sm-2 col-form-label">Nama</label>
                         <div class="col-sm-10">
-                          <input type="file" class="form-control" name="image" id="inputImageEdit" placeholder="Gambar Profil">
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" name="name" id="inputName" placeholder="Nama" value="{{ old('name', Auth::user()->name) }}">
+                            @error('name')
+                                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+                            @enderror
                         </div>
-                      </div>
-                    <div class="form-group row">
-                      <label for="inputName" class="col-sm-2 col-form-label">Nama</label>
-                      <div class="col-sm-10">
-                        <input type="text" class="form-control" name="name" id="inputName" placeholder="Nama" value="{{Auth::user()->name}}">
-                      </div>
                     </div>
                     <div class="form-group row">
-                      <label for="inputEmail" class="col-sm-2 col-form-label">Email</label>
-                      <div class="col-sm-10">
-                        <input type="email" class="form-control" name="email" id="inputEmail" placeholder="Email" value="{{Auth::user()->email}}">
-                      </div>
+                        <label for="inputEmail" class="col-sm-2 col-form-label">Email</label>
+                        <div class="col-sm-10">
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" id="inputEmail" placeholder="Email" value="{{ old('email', Auth::user()->email) }}">
+                            @error('email')
+                                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+                            @enderror
+                        </div>
                     </div>
                     <div class="form-group row">
-                      <div class="offset-sm-2 col-sm-10">
-                        <button type="submit" class="btn btn-danger">Ubah</button>
-                      </div>
+                        <label for="inputCurrentPassword" class="col-sm-2 col-form-label">Kata Sandi Saat Ini</label>
+                        <div class="col-sm-10">
+                            <input type="password" class="form-control @error('current_password') is-invalid @enderror" name="current_password" id="inputCurrentPassword" placeholder="Kata Sandi Saat Ini">
+                            @error('current_password')
+                                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+                            @enderror
+                        </div>
                     </div>
-                  </form>
+                    <div class="form-group row">
+                        <label for="inputNewPassword" class="col-sm-2 col-form-label">Kata Sandi Baru</label>
+                        <div class="col-sm-10">
+                            <input type="password" class="form-control @error('new_password') is-invalid @enderror" name="new_password" id="inputNewPassword" placeholder="Kata Sandi Baru">
+                            @error('new_password')
+                                <span class="invalid-feedback d-block" role="alert"><strong>{{ $message }}</strong></span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="inputNewPasswordConfirmation" class="col-sm-2 col-form-label">Konfirmasi Kata Sandi Baru</label>
+                        <div class="col-sm-10">
+                            <input type="password" class="form-control" name="new_password_confirmation" id="inputNewPasswordConfirmation" placeholder="Konfirmasi Kata Sandi Baru">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="offset-sm-2 col-sm-10">
+                            <button type="submit" class="btn btn-success rounded-pill"><i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Akun</button>
+                        </div>
+                    </div>
+                </form>
                 </div>
                 <!-- /.tab-pane -->
               </div>
@@ -140,5 +120,5 @@ $(document).ready(function(){
       <!-- /.row -->
     </div><!-- /.container-fluid -->
   </section>
-
   @endsection
+

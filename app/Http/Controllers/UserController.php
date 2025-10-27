@@ -41,16 +41,9 @@ class UserController extends Controller
         $data = new User();
         $data->name = $request->get('name');
         $data->email = $request->get('email');
-        $data->contact_number = $request->get('contact_number');
-        $data->address = $request->get('address');
         $data->password = bcrypt($request->get('password'));
         $data->category = $request->get('category');
         $data->remember_token = Str::random(10);
-
-        $image = $request->file('image');
-        if($image){;
-            $data->image = App::call([new FileUploadService, 'uploadFile'], ['file' => $image, 'filename' => $data->name, 'folder' => 'user']);
-        }
 
         $data->save();
 
@@ -88,20 +81,34 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        $user->name = $request->get('name');
-        $user->email = $request->get('email');
-        $user->contact_number = $request->get('contact_number');
-        $user->address = $request->get('address');
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+        ]);
 
-        $image = $request->file('image');
-        if ($image) {
-            $user->profile_picture = App::call([new FileUploadService, 'uploadFile'], ['file' => $image, 'filename' => $user->name, 'folder' => 'user']);
+        try{
+            $user->name = $request->get('name');
+            $user->email = $request->get('email');
+
+            if ($request->filled('current_password') || $request->filled('new_password') || $request->filled('new_password_confirmation')) {
+                $request->validate([
+                    'current_password' => ['required', 'current_password'],
+                    'new_password' => ['required', 'min:8', 'confirmed'],
+                ]);
+
+                $user->password = bcrypt($request->get('new_password'));
+            }
+
+            $user->save();
+
+            return redirect()->to('admin/profile')->with('status','Akun anda berhasil diperbarui');
         }
-
-        $user->save();
-
-        return redirect()->to('admin/profile')->with('status','Akun anda berhasil diperbarui');
+        catch(\Exception $e){
+            return redirect()->to('admin/profile')->with('status','Terjadi kesalahan dalam perubahan Akun, Perubahan Akun Digagalkan');
+        }
     }
+
+
 
     /**
      * Remove the specified resource from storage.

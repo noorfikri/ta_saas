@@ -39,11 +39,20 @@ class InstanceService
             [
                 'ParameterKey' => 'KeyName',
                 'ParameterValue' => env('AWS_EC2_KEY_PAIR_NAME'),
-            ],[
-                'ParameterKey' => 'InstanceName',
+            ],
+            [
+                'ParameterKey' => 'StoreName',
                 'ParameterValue' => $instance->name,
+            ],
+            [
+                'ParameterKey' => 'AdminEmail',
+                'ParameterValue' => $instance->admin_email,
+            ],
+            [
+                'ParameterKey' => 'AdminPassword',
+                'ParameterValue' => $instance->admin_password,
             ]
-        ];
+            ];
 
         try {
             $result = $this->cloudFormation->createStack([
@@ -57,6 +66,7 @@ class InstanceService
             $instance->aws_stack_id = $result['StackId'];
             $instance->status = 'creating';
             $instance->message = "pembuatan sistem sedang berjalan...";
+            $instance->admin_password = bcrypt($instance->admin_password);
             $instance->save();
 
             return $result['StackId'];
@@ -134,7 +144,13 @@ class InstanceService
                     break;
 
                 case 'CREATE_FAILED':
+                    $instance->update(['status' => 'failed', 'message' => 'Sistem Gagal Dibuat, Sistem Akan Otomatis Dihapus, Pesan: '.$statusReason]);
+
+                    break;
                 case 'ROLLBACK_COMPLETE':
+                    $instance->update(['status' => 'failed', 'message' => $statusReason]);
+
+                    break;
                 case 'ROLLBACK_FAILED':
                     $instance->update(['status' => 'failed', 'message' => $statusReason]);
 

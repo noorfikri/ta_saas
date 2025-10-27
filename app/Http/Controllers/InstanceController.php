@@ -48,10 +48,14 @@ class InstanceController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:instances,name',
+            'admin_email' => 'required|email|max:255',
+            'admin_password' => 'required|string|min:8',
         ]);
 
         $instance = Auth::user()->instances()->create([
             'name' => $validated['name'],
+            'admin_email' => $validated['admin_email'],
+            'admin_password' => $validated['admin_password'],
             'status' => 'PENDING',
         ]);
 

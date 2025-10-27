@@ -19,6 +19,8 @@ class CreateInstancesTable extends Migration
             $table->string('aws_stack_id')->nullable();
             $table->string('aws_stack_name')->nullable();
             $table->string('app_url')->nullable();
+            $table->string('admin_email')->nullable();
+            $table->string('admin_password')->nullable();
 
             $table->string('status')->default('PENDING');
             $table->text('message')->nullable();

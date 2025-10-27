@@ -9,11 +9,14 @@ class Instance extends Model
 {
     protected $fillable = [
         'name',
+        'user_id',
         'aws_stack_id',
         'aws_stack_name',
-        'app_url',
         'status',
         'message',
+        'app_url',
+        'admin_email',
+        'admin_password',
     ];
 
     public function user(){
