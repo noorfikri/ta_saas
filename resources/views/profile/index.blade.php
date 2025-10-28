@@ -28,6 +28,18 @@
 
   <!-- Main content -->
   <section class="content">
+    <div class="alert alert-primary">
+        <h5 class="color"><strong><i class="fa-solid fa-circle-info"></i> Bantuan</strong></h5>
+        Halaman ini adalah halaman <strong>Profil Akun</strong>. Anda dapat mengubah informasi akun anda pada halaman ini.<br>
+        <br> <strong>Cara penggunaan :</strong>
+        <ul>
+            <li>
+                <p class="my-0 py-0">
+                    <i class="fa-solid fa-pen-to-square"></i> <strong>Ubah Informasi Pengguna</strong> : Untuk mengubah informasi akun anda seperti nama, email, dan password akun. Simpan perubahan akun dengan menekan tombol <i class="fa-solid fa-floppy-disk"></i> <strong>Simpan Perubahan Akun</strong>
+                </p>
+            </li>
+        </ul>
+    </div>
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-3">

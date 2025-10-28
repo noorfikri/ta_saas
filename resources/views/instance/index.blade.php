@@ -19,6 +19,23 @@
 </section>
 
 <section class="content">
+    <div class="alert alert-primary">
+        <h5 class="color"><strong><i class="fa-solid fa-circle-info"></i> Bantuan</strong></h5>
+        Halaman ini adalah halaman <strong>Daftar Sistem Informasi Toko</strong>. Anda dapat membuat <strong>Sistem Informasi Toko</strong> baru sesuai dengan toko atau bisnis yang anda miliki.<br>
+        <br> <strong>Cara penggunaan :</strong>
+        <ul>
+            <li>
+                <p class="my-0 py-0">
+                    <i class="fas fa-plus-circle"></i> <strong>Buat Sistem Toko Baru</strong> : Untuk membuat <strong>Sistem Informasi Toko Baru</strong>. Sistem memerlukan kurang lebih <strong>10 - 30 Menit</strong> agar sistem dapat digunakan dengan baik. Pastikan anda menyimpan <strong>Email dan Password Admin</strong> dikarenakan akun tersebut digunakan untuk masuk kedalam sistem.
+                </p>
+            </li>
+            <li>
+                <p class="my-0 py-0">
+                    <i class="fas fa-trash"></i> <strong> Hapus Outlet </strong>: Untuk melakukan <strong>Penghapusan Sistem Informasi Toko</strong> yang telah terbentuk. <strong>Seluruh Data dan Informasi Yang Tersimpan Didalam Sistem Akan Dihapus.</strong>
+                </p>
+            </li>
+        </ul>
+    </div>
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
