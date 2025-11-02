@@ -34,7 +34,7 @@ class InstanceService
             ],
             [
                 'ParameterKey' => 'InstanceDBPassword',
-                'ParameterValue' => Str::random(24),
+                'ParameterValue' => $instance->admin_password,
             ],
             [
                 'ParameterKey' => 'KeyName',
