@@ -127,7 +127,12 @@ class InstanceService
             }
 
             $stackStatus = $detail['StackStatus'];
-            $statusReason = $detail['StackStatusReason'] ?? 'Tanpa keterangan dari AWS (Check AWS Console).';
+            if($detail['StackStatusReason'])
+            {
+                $statusReason = $detail['StackStatusReason'];
+            }else{
+                $statusReason = 'Tanpa keterangan dari AWS (Check AWS Console).';
+            }
 
             switch ($stackStatus) {
                 case 'CREATE_COMPLETE':
