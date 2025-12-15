@@ -22,7 +22,7 @@ class InstanceService
         ]);
     }
 
-    public function provisionInstance(Instance $instance): ?string
+    public function createInstance(Instance $instance): ?string
     {
         $stackName = 'instance-' . $instance->id . '-' . Str::slug($instance->name);
         $templateBody = file_get_contents(base_path('cloud/template/instance_create.yml'));
@@ -34,7 +34,7 @@ class InstanceService
             ],
             [
                 'ParameterKey' => 'InstanceDBPassword',
-                'ParameterValue' => Str::random(24),
+                'ParameterValue' => $instance->admin_password,
             ],
             [
                 'ParameterKey' => 'KeyName',
@@ -80,7 +80,7 @@ class InstanceService
         }
     }
 
-    public function deprovisionInstance(string $stackId): bool
+    public function deleteInstance(string $stackId): bool
     {
         try {
             $this->cloudFormation->deleteStack(['StackName' => $stackId]);
@@ -106,7 +106,7 @@ class InstanceService
         }
     }
 
-    public function updateInstanceStatuses(): void
+    public function updateInstanceStatus(): void
     {
         $instancesToUpdate = Instance::whereIn('status', ['creating', 'deleting'])->get();
 
@@ -119,21 +119,27 @@ class InstanceService
                 continue;
             }
 
-            $details = $this->getStackDetails($instance->aws_stack_id);
+            $detail = $this->getStackDetails($instance->aws_stack_id);
 
-            if (!$details) {
+            if (!$detail) {
                 $instance->update(['status' => 'failed', 'message' => 'Tidak dapat mengambil informasi sistem dari AWS.']);
                 continue;
             }
 
-            $stackStatus = $details['StackStatus'];
-            $statusReason = $details['StackStatusReason'] ?? 'Tanpa keterangan dari AWS (Check AWS Console).';
+            $stackStatus = $detail['StackStatus'];
+            $statusReason = $detail['StackStatusReason'] ?? 'Tanpa keterangan dari AWS (Check AWS Console).';
 
             switch ($stackStatus) {
                 case 'CREATE_COMPLETE':
-                    $outputs = collect($details['Outputs'] ?? []);
-                    $urlOutput = $outputs->where('OutputKey', 'WebAppURL')->first();
-                    $appUrl = $urlOutput ? $urlOutput['OutputValue'] : null;
+                    $appUrl = null;
+                    if (isset($detail['Outputs']) && is_array($detail['Outputs'])) {
+                        foreach ($detail['Outputs'] as $output) {
+                            if (isset($output['OutputKey']) && $output['OutputKey'] === 'WebAppURL') {
+                                $appUrl = $output['OutputValue'] ?? null;
+                                break;
+                            }
+                        }
+                    }
 
                     $instance->update([
                         'status' => 'active',

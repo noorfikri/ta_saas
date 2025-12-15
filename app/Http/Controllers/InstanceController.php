@@ -10,11 +10,11 @@ use Illuminate\Support\Facades\Auth;
 
 class InstanceController extends Controller
 {
-    protected $provisioningService;
+    protected $instanceService;
 
-    public function __construct(InstanceService $provisioningService)
+    public function __construct(InstanceService $instanceService)
     {
-        $this->provisioningService = $provisioningService;
+        $this->instanceService = $instanceService;
     }
 
     /**
@@ -59,10 +59,10 @@ class InstanceController extends Controller
             'status' => 'PENDING',
         ]);
 
-        $this->provisioningService->provisionInstance($instance);
+        $this->instanceService->createInstance($instance);
 
         $message = 'Aplikasi sedang dibuat.';
-        
+
         if ($request->ajax()) {
             return response()->json(['message' => $message, 'instance' => $instance]);
         }
@@ -112,11 +112,11 @@ class InstanceController extends Controller
      */
     public function destroy(Request $request, Instance $instance)
     {
-        if (Auth::id() !== $instance->user_id) {
+        if (Auth::id() != $instance->user_id) {
             if ($request->ajax()) {
-                return response()->json(['message' => 'Anda tidak dapat menghapus sistem yang bukan milik anda.'], 403);
+                return response()->json(['message' => 'A. Anda,'.Auth::id().' tidak dapat menghapus sistem yang bukan milik anda, '.$instance->user_id.'.'], 403);
             }
-            return redirect()->route('instances.index')->with('failed', "Anda tidak dapat menghapus sistem yang bukan milik anda.");
+            return redirect()->route('instances.index')->with('failed', "B. Anda, ".Auth::id()." tidak dapat menghapus sistem yang bukan milik anda,".$instance->user_id.".");
         }
 
         $stackId = $instance->aws_stack_id;
@@ -124,13 +124,13 @@ class InstanceController extends Controller
 
         if ($stackId) {
             $instance->update(['status' => 'deleting']);
-            $this->provisioningService->deprovisionInstance($stackId);
+            $this->instanceService->deleteInstance($stackId);
         } else {
            $instance->delete();
         }
 
         $message = "Penghapusan sistem untuk sistem '{$tenantName}' sedang berjalan.";
-        
+
         if ($request->ajax()) {
             return response()->json(['message' => $message]);
         }
@@ -147,7 +147,7 @@ class InstanceController extends Controller
 
     public function status()
     {
-        $this->provisioningService->updateInstanceStatuses();
+        $this->instanceService->updateInstanceStatus();
         $instances = Auth::user()->instances()->latest()->get();
         return response()->json(['instances' => $instances]);
     }
