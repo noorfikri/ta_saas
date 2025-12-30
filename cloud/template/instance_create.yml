@@ -1,28 +1,28 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Provisions a single-tenant environment for store owners.
+Description: Create Instance for Tenant
 
 Parameters:
   InstanceDBName:
     Type: String
-    Description: A unique name for the instance's database.
+    Description: DB App Name
   InstanceDBPassword:
     Type: String
     NoEcho: true
-    Description: The password for the instance's database.
+    Description: Tenant App DB Password
   StoreName:
     Type: String
-    Description: The Name of The Store.
+    Description: Store Name
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance.
+    Description: Tenant App SSH Keypair
   AdminEmail:
     Type: String
     NoEcho: true
-    Description: The email for the admin user.
+    Description: Admin Login Email
   AdminPassword:
     Type: String
     NoEcho: true
-    Description: The password for the admin user.
+    Description: Admin login password
 
 Resources:
   VPC:
@@ -75,7 +75,7 @@ Resources:
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: Subnet group for the instance database
+      DBSubnetGroupDescription: DB Subnet Group
       SubnetIds:
         - !Ref PrivateSubnetA
         - !Ref PrivateSubnetB
@@ -103,7 +103,7 @@ Resources:
   WebSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Enable HTTP and SSH access'
+      GroupDescription: 'Tenant App Security Group'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
@@ -112,7 +112,7 @@ Resources:
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Allow webserver to connect to the database'
+      GroupDescription: 'DB Security Group'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !GetAtt WebSecurityGroup.GroupId }
@@ -135,13 +135,11 @@ Resources:
           export HOME=/root
           echo "=====[Home Variable Set]=====" >> /var/log/user-data.log
 
-          # Install system packages and all required PHP extensions
           echo "=====[Updating and installing system packages]=====" >> /var/log/user-data.log
           dnf update -y
           dnf install -y httpd git php8.2 php8.2-mbstring php8.2-xml php8.2-fpm php8.2-pdo php8.2-mysqlnd php8.2-common php8.2-bcmath php8.2-cli
           echo "===[Packages installed]===" >> /var/log/user-data.log
 
-          # Install Composer globally using the official, robust method
           echo "=====[installing Composer]=====" >> /var/log/user-data.log
           cd /tmp
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -150,12 +148,10 @@ Resources:
           mv composer.phar /usr/local/bin/composer
           echo "===[Composer installed]===" >> /var/log/user-data.log
 
-          # Clone Laravel App
           echo "=====[Cloning Git Project]=====" >> /var/log/user-data.log
           git clone https://github.com/noorfikri/kp_asri.git -b saas_deploy_app /var/www/html
           echo "===[Git Project Cloned]===" >> /var/log/user-data.log
 
-          # Configure Laravel
           echo "=====[Configuring Laravel]=====" >> /var/log/user-data.log
           cd /var/www/html
           composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -164,7 +160,6 @@ Resources:
           php artisan key:generate
           echo "===[Laravel Configured]===" >> /var/log/user-data.log
 
-          # Set .env variables
           echo "=====[Setting .env Variables]=====" >> /var/log/user-data.log
           sed -i "s|DB_HOST=127.0.0.1|DB_HOST=${DB.Endpoint.Address}|g" .env
           sed -i "s|DB_DATABASE=laravel|DB_DATABASE=${InstanceDBName}|g" .env
@@ -176,20 +171,17 @@ Resources:
           sed -i "s|ADMIN_PASSWORD=|ADMIN_PASSWORD=${AdminPassword}|g" .env
           echo "===[.env Variables Set]===" >> /var/log/user-data.log
 
-          # Set Permissions
           echo "=====[Setting Permissions]=====" >> /var/log/user-data.log
           chown -R apache:apache /var/www/html
           chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
           echo "===[Permissions Set]===" >> /var/log/user-data.log
 
-          # Run Migrations & Clear Config
           echo "=====[Running Migrations]=====" >> /var/log/user-data.log
           php artisan optimize:clear
           php artisan migrate --seed --force
           php artisan storage:link
           echo "===[Migrations Set]===" >> /var/log/user-data.log
 
-          # Configure Apache
           echo "=====[Configuring Apache]=====" >> /var/log/user-data.log
           cat > /etc/httpd/conf.d/laravel.conf <<EOF
           <VirtualHost *:80>
@@ -202,7 +194,6 @@ Resources:
           EOF
           echo "===[Apache Configured]===" >> /var/log/user-data.log
 
-          # Enable and Start Services
           echo "=====[Starting Services]=====" >> /var/log/user-data.log
           systemctl enable php-fpm
           systemctl start php-fpm
@@ -228,5 +219,5 @@ Resources:
 
 Outputs:
   WebAppURL:
-    Description: "URL of the new instance's application"
+    Description: "Tenant app URL"
     Value: !GetAtt EC2Instance.PublicDnsName

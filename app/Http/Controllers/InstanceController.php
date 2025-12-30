@@ -24,8 +24,12 @@ class InstanceController extends Controller
      */
     public function index()
     {
-        $instances = Auth::user()->instances()->get();
-        return view('instance.index', compact('instances'));
+        try {
+            $instances = Auth::user()->instances()->get();
+            return view('instance.index', compact('instances'));
+        } catch (\Exception $e) {
+            return view('instance.index')->with('error', 'Gagal memuat daftar instance: ' . $e->getMessage());
+        }
     }
 
     /**

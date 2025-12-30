@@ -127,11 +127,9 @@ class InstanceService
             }
 
             $stackStatus = $detail['StackStatus'];
-            if($detail['StackStatusReason'])
-            {
+            $statusReason = 'Tanpa keterangan dari AWS (Check AWS Console).';
+            if (isset($detail['StackStatusReason'])) {
                 $statusReason = $detail['StackStatusReason'];
-            }else{
-                $statusReason = 'Tanpa keterangan dari AWS (Check AWS Console).';
             }
 
             switch ($stackStatus) {

@@ -33,7 +33,6 @@
             <div class="col-12">
                 <a href="{{ route('instances.index') }}" class="btn btn-outline-danger rounded-pill"> <i class="fa-solid fa-xmark"></i> Batal</a>
                 <button type="submit" class="btn btn-success float-right rounded-pill">
-                    <span id="modal-spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
                     <i class="fa-solid fa-floppy-disk"></i> Buat Sistem Toko Baru
                 </button>
             </div>
