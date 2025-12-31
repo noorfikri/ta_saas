@@ -38,11 +38,16 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,',
+            'password' => 'required|string|min:8',
+        ]);
+
         $data = new User();
         $data->name = $request->get('name');
         $data->email = $request->get('email');
         $data->password = bcrypt($request->get('password'));
-        $data->category = $request->get('category');
         $data->remember_token = Str::random(10);
 
         $data->save();
