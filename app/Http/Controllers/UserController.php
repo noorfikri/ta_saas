@@ -52,7 +52,7 @@ class UserController extends Controller
 
         $data->save();
 
-        return redirect()->route('users.index')->with('status','Akun dengan nama: '.$data->name.' berhasil dibuat');
+        return redirect('/login')->with('status','Akun dengan nama: '.$data->name.' berhasil dibuat');
     }
 
     /**
