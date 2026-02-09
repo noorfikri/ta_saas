@@ -1,63 +1,21 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# PEMBUATAN APLIKASI SOFTWARE AS A SERVICE UNTUK SISTEM INFORMASI MANAJEMEN JUAL BELI
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Demo
 
-## About Laravel
+Untuk demonstrasi aplikasi dapat dilihat pada link dibawah ini:
+https://dasboardtenanttokoku.my.id/
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Pendahuluan
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Aplikasi ini adalah apilkasi hasil dari tugas akhir yang berjudul "Pembuatan Aplikasi Software as a service Untuk Sistem Informasi Manajemen Jual Beli.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Aplikasi ini dibuat dengan tujuan untuk menyelesaikan permasalahan pemilik bisnis dimana manajemen bisnisnya menjadi lebih kompleks saat bisnsi mereka berkembang dan mereka membuat cabang baru.
 
-## Learning Laravel
+## Desain Sistem
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Sistem yang dibuat menggunakan arsitektur model silo. Saat pengguna membuat sistem baru melalui sistem dashboard tenant, baik instance EC2 dan instance RDS dan juga keperluan sumber daya jaringan lainnya untuk sistem informasi tenant akan dibuatkan baru secara terpisah dengan pengguna lainnya. Secara umum, terdapat 5 bagian utama dari arsitektur sistem baru yang dibuat pada AWS yaitu VPC, dan 2 Subnet dan 2 Instance. Seluruh sumber daya sistem yang dibuat akan berjalan pada VPC tersebut. Di Dalam arsitektur sistem yang terbuat, terdapat 2 subnet yaitu public subnet dan private subnet. Public subnet dapat diakses secara publik, sedangkan private subnet hanya bisa diakses oleh sumber daya yang berada pada public subnet tersebut. Seluruh subnet ini sudah memiliki security group sendiri. Security group ini adalah sebuah aturan pengelola lalu lintas jaringan yang akan melakukan filtering untuk lalu lintas apa saja yang dapat masuk ke subnet tersebut, seperti hanya memperbolehkan lalu lintas MySQL untuk private subnet dan memperbolehkan seluruh lalu lintas HTTP publik pada public subnet. Untuk menghubungkan sumber daya dari public subnet ke internet, dibuatkan sebuah Internet Gateway dan dipasangkan ke dalam VPC ini. Terdapat 2 instance yang berjalan pada jaringan virtual ini yaitu instance EC2 dan instance RDS. Instance EC2 akan menjalankan aplikasi utama sistem informasi bisnis pengguna. Instance EC2 ini terletak pada public subnet dan dapat diakses oleh pengguna dan pengunjung web secara publik. Instance RDS akan menjalankan layanan basis data MySQL sistem. Instance RDS ini berada di bagian private subnet dan tidak dapat diakses secara umum, hanya aplikasi yang berjalan pada public subnet mengakses instance ini. Desain arsitektur sistem yang dibuat ini dapat dilihat pada gambar dibawah ini
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+<img width="588" height="466" alt="diagram-export-03-11-2025-15 15 05" src="https://github.com/user-attachments/assets/218866a5-df6c-458c-acc7-408cc774653b" />
 
 ## License
 
