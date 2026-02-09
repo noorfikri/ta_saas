@@ -20,4 +20,5 @@ Sistem yang dibuat menggunakan arsitektur model silo. Saat pengguna membuat sist
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
 AdminLTE is an open source project that is licensed under the MIT license.
